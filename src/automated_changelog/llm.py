@@ -76,4 +76,4 @@ def call_llm(
         kwargs["api_key"] = client_config["api_key"]
 
     response = completion(**kwargs)
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""
