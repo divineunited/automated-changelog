@@ -103,17 +103,56 @@ def test_init_command_custom_config_path():
         assert not Path(".changelog_config.yaml").exists()
 
 
-def test_generate_command():
-    """Test generate command."""
+def test_generate_command_missing_config():
+    """Test generate command when config file doesn't exist."""
     runner = CliRunner()
-    result = runner.invoke(cli, ["generate"])
-    assert result.exit_code == 0
-    assert "Generating changelog" in result.output
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["generate"])
+
+        assert result.exit_code == 1
+        assert "Configuration file not found" in result.output
+        assert "automated-changelog init" in result.output
+
+
+def test_generate_command_with_valid_config():
+    """Test generate command with valid config file."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # First create a config file
+        runner.invoke(cli, ["init"], input="n\n")
+
+        # Then run generate
+        result = runner.invoke(cli, ["generate"])
+
+        assert result.exit_code == 0
+        assert "Loaded configuration" in result.output
+        assert "CHANGELOG.md" in result.output
+        assert "not yet implemented" in result.output.lower()
 
 
 def test_generate_dry_run():
     """Test generate command with dry-run flag."""
     runner = CliRunner()
-    result = runner.invoke(cli, ["generate", "--dry-run"])
-    assert result.exit_code == 0
-    assert "Dry run mode" in result.output
+    with runner.isolated_filesystem():
+        # Create config first
+        runner.invoke(cli, ["init"], input="n\n")
+
+        # Run with dry-run
+        result = runner.invoke(cli, ["generate", "--dry-run"])
+
+        assert result.exit_code == 0
+        assert "Dry run mode" in result.output
+
+
+def test_generate_custom_config_path():
+    """Test generate command with custom config path."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create config at custom path
+        runner.invoke(cli, ["init", "--config", "my_config.yaml"], input="n\n")
+
+        # Generate using custom path
+        result = runner.invoke(cli, ["generate", "--config", "my_config.yaml"])
+
+        assert result.exit_code == 0
+        assert "Loaded configuration from my_config.yaml" in result.output

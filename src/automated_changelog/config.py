@@ -2,6 +2,9 @@
 
 import subprocess
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 
 def get_monorepo_modules(root_dir: Path) -> list[str]:
@@ -141,3 +144,52 @@ def get_repo_name() -> str:
     except Exception:
         # Fallback to current directory name
         return Path.cwd().name
+
+
+class ConfigError(Exception):
+    """Raised when configuration is invalid or missing."""
+
+    pass
+
+
+def load_config(config_path: str | Path) -> dict[str, Any]:
+    """Load and parse the changelog configuration file.
+
+    Args:
+        config_path: Path to the YAML configuration file
+
+    Returns:
+        Parsed configuration as dictionary
+
+    Raises:
+        ConfigError: If config file doesn't exist or is invalid
+    """
+    config_file = Path(config_path)
+
+    if not config_file.exists():
+        raise ConfigError(
+            f"Configuration file not found: {config_path}\n"
+            "Run 'automated-changelog init' to create one."
+        )
+
+    try:
+        with config_file.open("r") as f:
+            config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ConfigError(f"Invalid YAML in configuration file: {e}") from e
+    except Exception as e:
+        raise ConfigError(f"Error reading configuration file: {e}") from e
+
+    if not config:
+        raise ConfigError("Configuration file is empty")
+
+    # Validate required fields
+    required_fields = ["output_file", "modules", "filter"]
+    missing_fields = [field for field in required_fields if field not in config]
+
+    if missing_fields:
+        raise ConfigError(
+            f"Missing required configuration fields: {', '.join(missing_fields)}"
+        )
+
+    return config

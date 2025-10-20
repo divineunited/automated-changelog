@@ -4,7 +4,12 @@ from pathlib import Path
 
 import click
 
-from automated_changelog.config import generate_config_template, get_repo_name
+from automated_changelog.config import (
+    ConfigError,
+    generate_config_template,
+    get_repo_name,
+    load_config,
+)
 
 
 @click.group()
@@ -70,11 +75,24 @@ def init(config):
 )
 def generate(config, dry_run):
     """Generate changelog from git history."""
-    click.echo(f"Generating changelog using {config}...")
-    if dry_run:
-        click.echo("(Dry run mode)")
-    # TODO: Implement generate logic
-    click.echo("Not yet implemented")
+    # Load configuration
+    try:
+        cfg = load_config(config)
+        click.echo(f"✓ Loaded configuration from {config}")
+
+        # Display config summary
+        click.echo(f"  Output file: {cfg['output_file']}")
+        click.echo(f"  Modules: {', '.join(cfg['modules'])}")
+
+        if dry_run:
+            click.echo("\n(Dry run mode - no files will be written)")
+
+        # TODO: Implement changelog generation logic
+        click.echo("\nChangelog generation not yet implemented")
+
+    except ConfigError as e:
+        click.echo(f"✗ {e}", err=True)
+        raise click.Abort()
 
 
 if __name__ == "__main__":

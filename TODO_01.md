@@ -38,7 +38,7 @@ filter:
 ```
 
 
-## 3. Load the config file
+## 3. Load the config file [ X ]
 - the `generate` command should now load the file using a yaml parser
 - it should look for the file in the current directory and if it's not there it should ask to init
 - use a library like PyYaml
