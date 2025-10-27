@@ -1,0 +1,62 @@
+# Automated Changelog Configuration
+# This file defines how the changelog generator analyzes your repository.
+
+# Output file where the changelog will be written.
+# The tool will prepend new entries to this file.
+output_file: "CHANGELOG.md"
+
+# List of modules/packages/services in your repository.
+# For monorepos: Each top-level directory is typically a module.
+# For single repos: Just list the repo name as a single module.
+modules:
+  - automated-changelog
+
+# Filtering rules for commits.
+# These help focus the changelog on significant changes by excluding noise.
+filter:
+  # Commits starting with these prefixes will be ignored for summarization.
+  ignore_prefixes:
+    - "chore:"
+    - "docs:"
+    - "test:"
+    - "ci:"
+    - "refactor:"
+    - "style:"
+    - "build:"
+
+  # Commits containing these keywords in the subject will be ignored.
+  ignore_keywords:
+    - "typo"
+    - "cleanup"
+    - "formatting"
+    - "[skip ci]"
+    - "merge branch"
+    - "merge pull request"
+
+  # Commits ONLY touching files/paths matching these patterns will be ignored.
+  # Use glob patterns. If a commit touches ANY file outside these patterns, it won't be filtered.
+  ignore_paths_only:
+    - "*.md"
+    - "docs/"
+    - "tests/"
+    - ".github/"
+    - "*.txt"
+
+# LLM Configuration (optional customization)
+# The tool uses these prompts to generate summaries.
+llm:
+  # Model to use for summarization (default: claude-sonnet-4-5)
+  model: "claude-sonnet-4-5"
+
+  # System prompt for module-level summaries
+  module_summary_prompt: |
+    You are a technical writer creating changelog entries.
+    Summarize the significant changes for this module in 2-4 concise bullet points.
+    Focus on features, fixes, and breaking changes. Ignore minor updates.
+    Use clear, user-facing language.
+
+  # System prompt for overall repository summary
+  overall_summary_prompt: |
+    You are a technical writer creating changelog entries.
+    Provide a high-level summary (3-4 sentences) of the key activities across all modules.
+    Highlight the most important changes or themes for this release period.
