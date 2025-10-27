@@ -124,7 +124,8 @@ def generate(config, dry_run):
 
             # Generate fake summary for now
             timestamp = datetime.now().strftime("%Y-%m-%d")
-            summary = f"## [{timestamp}]\n\n"
+            summary = f"## [{timestamp}]\n"
+            summary += f"<!-- LATEST_COMMIT: {latest_hash} -->\n\n"
             summary += f"### Summary\n\n"
             summary += f"This release includes {len(commits)} commits with various improvements and updates.\n\n"
             summary += f"### Changes by Module\n\n"
