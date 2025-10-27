@@ -82,7 +82,7 @@ def write_changelog_entry(
 def fetch_commits(
     last_commit_hash: Optional[str] = None,
     repo_path: str | Path = ".",
-) -> list[tuple[str, str]]:
+) -> list[dict[str, str]]:
     """
     Fetch commits from git log.
 
@@ -93,7 +93,12 @@ def fetch_commits(
         repo_path: Path to the git repository (default: current directory)
 
     Returns:
-        List of (commit_hash, subject) tuples
+        List of commit dictionaries with keys:
+        - hash: full commit hash
+        - short_hash: abbreviated commit hash
+        - author: author name
+        - date: author date (ISO 8601-like format: YYYY-MM-DD HH:MM:SS)
+        - subject: commit subject/message
 
     Raises:
         subprocess.CalledProcessError: If git command fails
@@ -108,8 +113,8 @@ def fetch_commits(
     if last_commit_hash:
         cmd.append(f"{last_commit_hash}..HEAD")
 
-    # Format: hash ||| subject
-    cmd.extend(["--pretty=format:%H ||| %s"])
+    # Format: hash ||| short_hash ||| author ||| date ||| subject
+    cmd.extend(["--pretty=format:%H|||%h|||%an|||%ai|||%s"])
 
     # Execute git log
     result = subprocess.run(
@@ -125,9 +130,20 @@ def fetch_commits(
         if not line:
             continue
 
-        parts = line.split(" ||| ", 1)
-        if len(parts) == 2:
-            commit_hash, subject = parts
-            commits.append((commit_hash.strip(), subject.strip()))
+        parts = line.split("|||", 4)
+        if len(parts) == 5:
+            # Trim date to just YYYY-MM-DD HH:MM (remove seconds and timezone)
+            date_str = parts[3].strip()
+            if len(date_str) >= 16:
+                date_str = date_str[:16]  # "2025-10-27 14:32"
+
+            commit = {
+                "hash": parts[0].strip(),
+                "short_hash": parts[1].strip(),
+                "author": parts[2].strip(),
+                "date": date_str,
+                "subject": parts[4].strip(),
+            }
+            commits.append(commit)
 
     return commits

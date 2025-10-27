@@ -123,7 +123,13 @@ def test_generate_command_with_valid_config(mock_write, mock_read, mock_fetch):
     # Mock git operations
     mock_read.return_value = None
     mock_fetch.return_value = [
-        ("abc123def456789012345678901234567890abcd", "Initial commit")
+        {
+            "hash": "abc123def456789012345678901234567890abcd",
+            "short_hash": "abc123d",
+            "author": "Test Author",
+            "date": "2025-10-27 14:32",
+            "subject": "Initial commit",
+        }
     ]
 
     runner = CliRunner()
@@ -151,7 +157,13 @@ def test_generate_dry_run(mock_write, mock_read, mock_fetch):
     # Mock git operations
     mock_read.return_value = "abc123"
     mock_fetch.return_value = [
-        ("def456789012345678901234567890abcdef456", "New feature")
+        {
+            "hash": "def456789012345678901234567890abcdef456",
+            "short_hash": "def4567",
+            "author": "Test Author",
+            "date": "2025-10-26 10:15",
+            "subject": "New feature",
+        }
     ]
 
     runner = CliRunner()
@@ -177,7 +189,13 @@ def test_generate_custom_config_path(mock_write, mock_read, mock_fetch):
     # Mock git operations
     mock_read.return_value = None
     mock_fetch.return_value = [
-        ("abc123def456789012345678901234567890abcd", "Test commit")
+        {
+            "hash": "abc123def456789012345678901234567890abcd",
+            "short_hash": "abc123d",
+            "author": "Test Author",
+            "date": "2025-10-27 11:20",
+            "subject": "Test commit",
+        }
     ]
 
     runner = CliRunner()

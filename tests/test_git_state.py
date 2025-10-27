@@ -141,23 +141,26 @@ class TestFetchCommits:
         """Test fetching commits when no last hash provided."""
         # Mock git log output
         mock_result = MagicMock()
-        mock_result.stdout = "abc123def456789012345678901234567890abcd ||| Initial commit"
+        mock_result.stdout = "abc123def456789012345678901234567890abcd|||a1b2c3d|||John Doe|||2025-10-27 14:32:15 -0700|||Initial commit"
         mock_run.return_value = mock_result
 
         # Fetch commits
         commits = fetch_commits()
 
         assert len(commits) == 1
-        commit_hash, subject = commits[0]
-        assert len(commit_hash) == 40  # Full SHA-1 hash
-        assert subject == "Initial commit"
+        commit = commits[0]
+        assert len(commit["hash"]) == 40  # Full SHA-1 hash
+        assert commit["short_hash"] == "a1b2c3d"
+        assert commit["author"] == "John Doe"
+        assert commit["date"] == "2025-10-27 14:32"
+        assert commit["subject"] == "Initial commit"
 
         # Verify git log was called correctly (without commit range)
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert args[0] == "git"
         assert "log" in args
-        assert "--pretty=format:%H ||| %s" in args
+        assert "--pretty=format:%H|||%h|||%an|||%ai|||%s" in args
 
     @patch("automated_changelog.git_state.subprocess.run")
     def test_fetch_commits_with_last_hash(self, mock_run):
@@ -165,15 +168,15 @@ class TestFetchCommits:
         # Mock git log output
         first_hash = "abc123def456789012345678901234567890abcd"
         mock_result = MagicMock()
-        mock_result.stdout = "def456789012345678901234567890abcdef456 ||| Second commit"
+        mock_result.stdout = "def456789012345678901234567890abcdef456|||d4e5f67|||Jane Smith|||2025-10-26 10:15:42 -0700|||Second commit"
         mock_run.return_value = mock_result
 
         # Fetch commits since first hash
         commits = fetch_commits(last_commit_hash=first_hash)
 
         assert len(commits) == 1
-        commit_hash, subject = commits[0]
-        assert subject == "Second commit"
+        commit = commits[0]
+        assert commit["subject"] == "Second commit"
 
         # Verify git log was called with commit range
         mock_run.assert_called_once()
@@ -209,9 +212,9 @@ class TestFetchCommits:
         # Mock multiple commits in git log output
         mock_result = MagicMock()
         mock_result.stdout = (
-            "333333333333333333333333333333333333333333 ||| Third\n"
-            "222222222222222222222222222222222222222222 ||| Second\n"
-            "111111111111111111111111111111111111111111 ||| First"
+            "333333333333333333333333333333333333333333|||3333333|||Alice|||2025-10-24 09:20:11 -0700|||Third\n"
+            "222222222222222222222222222222222222222222|||2222222|||Bob|||2025-10-23 08:15:22 -0700|||Second\n"
+            "111111111111111111111111111111111111111111|||1111111|||Charlie|||2025-10-22 07:10:33 -0700|||First"
         )
         mock_run.return_value = mock_result
 
@@ -220,9 +223,9 @@ class TestFetchCommits:
 
         assert len(commits) == 3
         # Commits are in reverse chronological order (newest first)
-        assert commits[0][1] == "Third"
-        assert commits[1][1] == "Second"
-        assert commits[2][1] == "First"
+        assert commits[0]["subject"] == "Third"
+        assert commits[1]["subject"] == "Second"
+        assert commits[2]["subject"] == "First"
 
 
 class TestIntegration:
@@ -246,17 +249,17 @@ class TestIntegration:
 
         # Mock fetching new commits
         mock_result = MagicMock()
-        mock_result.stdout = f"{second_hash} ||| Second commit"
+        mock_result.stdout = f"{second_hash}|||d4e5f67|||John|||2025-10-27 15:45:30 -0700|||Second commit"
         mock_run.return_value = mock_result
 
         # Fetch new commits
         new_commits = fetch_commits(last_commit_hash=read_hash)
         assert len(new_commits) == 1
-        assert new_commits[0][1] == "Second commit"
+        assert new_commits[0]["subject"] == "Second commit"
 
         # Update changelog
         write_changelog_entry(
-            changelog, new_commits[0][0], "## [2025-01-16]\n\n- Second release\n"
+            changelog, new_commits[0]["hash"], "## [2025-01-16]\n\n- Second release\n"
         )
 
         # Verify the changelog has both entries

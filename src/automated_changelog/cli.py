@@ -114,15 +114,15 @@ def generate(config, dry_run):
 
             # Display some commits for verification
             click.echo("\nRecent commits:")
-            for commit_hash, subject in commits[:5]:
-                click.echo(f"  {commit_hash[:8]} - {subject}")
+            for commit in commits[:5]:
+                click.echo(f"  {commit['short_hash']} - {commit['subject']}")
             if len(commits) > 5:
                 click.echo(f"  ... and {len(commits) - 5} more")
 
             # Get the latest commit hash
-            latest_hash = commits[0][0]
+            latest_hash = commits[0]["hash"]
 
-            # Generate fake summary for now
+            # Generate changelog summary
             timestamp = datetime.now().strftime("%Y-%m-%d")
             summary = f"## [{timestamp}]\n"
             summary += f"<!-- LATEST_COMMIT: {latest_hash} -->\n\n"
@@ -131,9 +131,12 @@ def generate(config, dry_run):
             summary += f"### Changes by Module\n\n"
 
             for module in cfg["modules"]:
-                summary += f"**{module}** ({len(commits)} commits)\n"
-                summary += f"- Placeholder summary for {module}\n"
-                summary += f"- More improvements and bug fixes\n\n"
+                summary += f"**{module}** ({len(commits)} commits)\n\n"
+                # List each commit with details
+                for commit in commits:
+                    summary += f"- `{commit['short_hash']}` {commit['subject']} "
+                    summary += f"({commit['author']}, {commit['date']})\n"
+                summary += "\n"
 
             # Write to changelog
             if not dry_run:
