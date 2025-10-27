@@ -1,6 +1,7 @@
 """Tests for CLI commands."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
@@ -114,8 +115,17 @@ def test_generate_command_missing_config():
         assert "automated-changelog init" in result.output
 
 
-def test_generate_command_with_valid_config():
+@patch("automated_changelog.cli.fetch_commits")
+@patch("automated_changelog.cli.read_last_commit_hash")
+@patch("automated_changelog.cli.write_changelog_entry")
+def test_generate_command_with_valid_config(mock_write, mock_read, mock_fetch):
     """Test generate command with valid config file."""
+    # Mock git operations
+    mock_read.return_value = None
+    mock_fetch.return_value = [
+        ("abc123def456789012345678901234567890abcd", "Initial commit")
+    ]
+
     runner = CliRunner()
     with runner.isolated_filesystem():
         # First create a config file
@@ -127,11 +137,23 @@ def test_generate_command_with_valid_config():
         assert result.exit_code == 0
         assert "Loaded configuration" in result.output
         assert "CHANGELOG.md" in result.output
-        assert "not yet implemented" in result.output.lower()
+        assert "Found 1 commits to process" in result.output
+
+        # Verify write was called
+        assert mock_write.called
 
 
-def test_generate_dry_run():
+@patch("automated_changelog.cli.fetch_commits")
+@patch("automated_changelog.cli.read_last_commit_hash")
+@patch("automated_changelog.cli.write_changelog_entry")
+def test_generate_dry_run(mock_write, mock_read, mock_fetch):
     """Test generate command with dry-run flag."""
+    # Mock git operations
+    mock_read.return_value = "abc123"
+    mock_fetch.return_value = [
+        ("def456789012345678901234567890abcdef456", "New feature")
+    ]
+
     runner = CliRunner()
     with runner.isolated_filesystem():
         # Create config first
@@ -143,9 +165,21 @@ def test_generate_dry_run():
         assert result.exit_code == 0
         assert "Dry run mode" in result.output
 
+        # Verify write was NOT called in dry-run mode
+        assert not mock_write.called
 
-def test_generate_custom_config_path():
+
+@patch("automated_changelog.cli.fetch_commits")
+@patch("automated_changelog.cli.read_last_commit_hash")
+@patch("automated_changelog.cli.write_changelog_entry")
+def test_generate_custom_config_path(mock_write, mock_read, mock_fetch):
     """Test generate command with custom config path."""
+    # Mock git operations
+    mock_read.return_value = None
+    mock_fetch.return_value = [
+        ("abc123def456789012345678901234567890abcd", "Test commit")
+    ]
+
     runner = CliRunner()
     with runner.isolated_filesystem():
         # Create config at custom path

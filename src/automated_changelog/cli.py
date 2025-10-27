@@ -1,5 +1,7 @@
 """CLI entry point for automated-changelog."""
 
+import subprocess
+from datetime import datetime
 from pathlib import Path
 
 import click
@@ -9,6 +11,11 @@ from automated_changelog.config import (
     generate_config_template,
     get_repo_name,
     load_config,
+)
+from automated_changelog.git_state import (
+    fetch_commits,
+    read_last_commit_hash,
+    write_changelog_entry,
 )
 
 
@@ -87,8 +94,62 @@ def generate(config, dry_run):
         if dry_run:
             click.echo("\n(Dry run mode - no files will be written)")
 
-        # TODO: Implement changelog generation logic
-        click.echo("\nChangelog generation not yet implemented")
+        # Read last commit hash from changelog
+        output_file = cfg["output_file"]
+        last_hash = read_last_commit_hash(output_file)
+
+        if last_hash:
+            click.echo(f"\n✓ Found last processed commit: {last_hash[:8]}")
+        else:
+            click.echo("\n! No previous state found, fetching all commits")
+
+        # Fetch commits
+        try:
+            commits = fetch_commits(last_commit_hash=last_hash)
+            click.echo(f"✓ Found {len(commits)} commits to process")
+
+            if not commits:
+                click.echo("\n! No new commits to process")
+                return
+
+            # Display some commits for verification
+            click.echo("\nRecent commits:")
+            for commit_hash, subject in commits[:5]:
+                click.echo(f"  {commit_hash[:8]} - {subject}")
+            if len(commits) > 5:
+                click.echo(f"  ... and {len(commits) - 5} more")
+
+            # Get the latest commit hash
+            latest_hash = commits[0][0]
+
+            # Generate fake summary for now
+            timestamp = datetime.now().strftime("%Y-%m-%d")
+            summary = f"## [{timestamp}]\n\n"
+            summary += f"### Summary\n\n"
+            summary += f"This release includes {len(commits)} commits with various improvements and updates.\n\n"
+            summary += f"### Changes by Module\n\n"
+
+            for module in cfg["modules"]:
+                summary += f"**{module}** ({len(commits)} commits)\n"
+                summary += f"- Placeholder summary for {module}\n"
+                summary += f"- More improvements and bug fixes\n\n"
+
+            # Write to changelog
+            if not dry_run:
+                write_changelog_entry(output_file, latest_hash, summary)
+                click.echo(f"\n✓ Changelog updated: {output_file}")
+                click.echo(f"  Latest commit: {latest_hash[:8]}")
+            else:
+                click.echo("\n--- Generated Summary (Dry Run) ---")
+                click.echo(summary)
+                click.echo(f"\nWould update state to: {latest_hash[:8]}")
+
+        except subprocess.CalledProcessError as e:
+            click.echo(f"✗ Git command failed: {e}", err=True)
+            raise click.Abort()
+        except FileNotFoundError:
+            click.echo("✗ Git not found. Please ensure git is installed.", err=True)
+            raise click.Abort()
 
     except ConfigError as e:
         click.echo(f"✗ {e}", err=True)
