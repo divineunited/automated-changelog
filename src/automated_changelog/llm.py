@@ -1,28 +1,34 @@
 """LLM client configuration for changelog generation."""
 
 import os
+import ssl
 
 from dotenv import load_dotenv
 from litellm import completion
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (.env file overrides shell environment)
+load_dotenv(override=True)
+
+# Disable SSL verification for internal proxies if needed
+# This is set via environment variable: SSL_VERIFY=false
+if os.getenv("SSL_VERIFY", "true").lower() == "false":
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def get_llm_client():
     """
     Get configured LLM client based on environment variables.
 
-    Supports:
-    - LiteLLM Proxy (if LITELLM_PROXY_API_BASE and LITELLM_PROXY_API_KEY are set)
-    - Direct Anthropic API (if ANTHROPIC_API_KEY is set)
+    Requires LiteLLM Proxy configuration:
+    - LITELLM_PROXY_API_BASE: Base URL for LiteLLM proxy
+    - LITELLM_PROXY_API_KEY or LITELLM_API_KEY: API key for the proxy
 
     Returns:
         Configured client settings dict
     """
     proxy_base = os.getenv("LITELLM_PROXY_API_BASE")
-    proxy_key = os.getenv("LITELLM_PROXY_API_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    # Try multiple key names for proxy
+    proxy_key = os.getenv("LITELLM_PROXY_API_KEY") or os.getenv("LITELLM_API_KEY")
 
     if proxy_base and proxy_key:
         return {
@@ -30,16 +36,11 @@ def get_llm_client():
             "api_key": proxy_key,
             "provider": "litellm_proxy",
         }
-    elif anthropic_key:
-        return {
-            "api_key": anthropic_key,
-            "provider": "anthropic",
-        }
     else:
         raise ValueError(
-            "No LLM API credentials found. Set either:\n"
-            "  - LITELLM_PROXY_API_BASE and LITELLM_PROXY_API_KEY, or\n"
-            "  - ANTHROPIC_API_KEY"
+            "No LLM API credentials found. Please set:\n"
+            "  - LITELLM_PROXY_API_BASE and\n"
+            "  - LITELLM_PROXY_API_KEY (or LITELLM_API_KEY)"
         )
 
 
@@ -49,7 +50,7 @@ def call_llm(
     max_tokens: int = 7096,
 ) -> str:
     """
-    Call LLM with the given prompt.
+    Call LLM with the given prompt via LiteLLM proxy.
 
     Args:
         prompt: The prompt to send to the LLM
@@ -66,14 +67,9 @@ def call_llm(
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
+        "api_base": client_config["api_base"],
+        "api_key": client_config["api_key"],
     }
-
-    # Add API configuration based on provider
-    if client_config["provider"] == "litellm_proxy":
-        kwargs["api_base"] = client_config["api_base"]
-        kwargs["api_key"] = client_config["api_key"]
-    else:
-        kwargs["api_key"] = client_config["api_key"]
 
     response = completion(**kwargs)
     return response.choices[0].message.content or ""

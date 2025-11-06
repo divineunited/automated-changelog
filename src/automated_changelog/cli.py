@@ -17,6 +17,11 @@ from automated_changelog.git_state import (
     read_last_commit_hash,
     write_changelog_entry,
 )
+from automated_changelog.summarization import (
+    filter_commits,
+    generate_module_summary,
+    generate_overall_summary,
+)
 
 
 @click.group()
@@ -80,7 +85,12 @@ def init(config):
     is_flag=True,
     help="Show what would be generated without writing to file",
 )
-def generate(config, dry_run):
+@click.option(
+    "--skip-llm",
+    is_flag=True,
+    help="Skip LLM summarization and only list commits",
+)
+def generate(config, dry_run, skip_llm):
     """Generate changelog from git history."""
     # Load configuration
     try:
@@ -122,21 +132,105 @@ def generate(config, dry_run):
             # Get the latest commit hash
             latest_hash = commits[0]["hash"]
 
-            # Generate changelog summary
+            # Filter commits based on config
+            filter_config = cfg.get("filter", {})
+            filtered_commits = filter_commits(commits, filter_config)
+
+            click.echo(
+                f"  After filtering: {len(filtered_commits)} commits "
+                f"(excluded {len(commits) - len(filtered_commits)})"
+            )
+
+            # Get LLM configuration
+            llm_config = cfg.get("llm", {})
+            model = llm_config.get("model", "claude-sonnet-4-5")
+            module_prompt = llm_config.get(
+                "module_summary_prompt",
+                "Summarize the commits in 2-4 bullet points.",
+            )
+            overall_prompt = llm_config.get(
+                "overall_summary_prompt",
+                "Provide a high-level summary across all modules.",
+            )
+
+            # Generate summaries per module
+            is_monorepo = len(cfg["modules"]) > 1
+            module_summaries = {}
+            overall_summary = None
+            use_llm = not skip_llm
+
+            if use_llm:
+                try:
+                    # Check for LLM credentials
+                    from automated_changelog.llm import get_llm_client
+
+                    try:
+                        get_llm_client()
+                    except ValueError as e:
+                        click.echo(f"\n⚠ {e}", err=True)
+                        click.echo(
+                            "  Run with --skip-llm to generate without summarization.\n"
+                        )
+                        use_llm = False
+
+                    if use_llm:
+                        click.echo("\n✓ Generating LLM summaries...")
+                        for module in cfg["modules"]:
+                            click.echo(f"  Summarizing {module}...")
+                            module_summary = generate_module_summary(
+                                module_name=module,
+                                commits=filtered_commits,
+                                prompt_template=module_prompt,
+                                model=model,
+                            )
+                            module_summaries[module] = module_summary
+
+                        # Generate overall summary if monorepo
+                        if is_monorepo:
+                            click.echo("  Generating overall summary...")
+                            overall_summary = generate_overall_summary(
+                                module_summaries=module_summaries,
+                                prompt_template=overall_prompt,
+                                model=model,
+                            )
+                except Exception as e:
+                    click.echo(f"\n⚠ LLM summarization failed: {e}", err=True)
+                    click.echo("  Falling back to commit list only...\n")
+                    use_llm = False
+                    module_summaries = {}
+                    overall_summary = None
+
+            # Build changelog entry
             timestamp = datetime.now().strftime("%Y-%m-%d")
             summary = f"## [{timestamp}]\n"
             summary += f"<!-- LATEST_COMMIT: {latest_hash} -->\n\n"
-            summary += f"### Summary\n\n"
-            summary += f"This release includes {len(commits)} commits with various improvements and updates.\n\n"
-            summary += f"### Changes by Module\n\n"
 
+            # Add overall summary if monorepo and LLM was used
+            if use_llm and overall_summary:
+                summary += f"### Summary\n\n"
+                summary += f"{overall_summary}\n\n"
+
+            # Add module summaries
+            summary += f"### Changes by Module\n\n"
             for module in cfg["modules"]:
                 summary += f"**{module}** ({len(commits)} commits)\n\n"
-                # List each commit with details
+
+                # Add LLM summary if available
+                if use_llm and module in module_summaries:
+                    summary += f"{module_summaries[module]}\n\n"
+
+                # List all commits (not just filtered)
+                if use_llm:
+                    summary += "<details>\n<summary>All commits</summary>\n\n"
                 for commit in commits:
-                    summary += f"- `{commit['short_hash']}` {commit['subject']} "
-                    summary += f"({commit['author']}, {commit['date']})\n"
-                summary += "\n"
+                    summary += (
+                        f"- `{commit['short_hash']}` {commit['subject']} "
+                        f"({commit['author']}, {commit['date']})\n"
+                    )
+                if use_llm:
+                    summary += "\n</details>\n\n"
+                else:
+                    summary += "\n"
 
             # Write to changelog
             if not dry_run:

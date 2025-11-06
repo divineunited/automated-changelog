@@ -44,3 +44,6 @@ run-generate:  ## Run the generate command
 
 run-generate-dry:  ## Run generate in dry-run mode
 	uv run automated-changelog generate --dry-run
+
+run-generate-dry-no-ssl:  ## Run generate in dry-run mode with SSL verification disabled
+	SSL_VERIFY=false uv run automated-changelog generate --dry-run

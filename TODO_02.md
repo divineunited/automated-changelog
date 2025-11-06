@@ -19,7 +19,7 @@ Write some fake summary for now but track the latest commit hash.
 For each commit, just put the commit ID and the author, date, and message after in a way that is clean and looks almost as clean as `git log --oneline`. It should be very easy to go through them all. No LLM summary needed here.
 Also, since we're tracking each commit (using the short commit ID similar to the `git log --oneline` ID), you don't need to have the commit ID after each update that is appended.
 
-## 6. Processing and Summarization. [ ]
+## 6. Processing and Summarization. [ X ]
 For each service of each monorepo (or for that repo if it's not a monorepo), utilize everything you have so far to create a nice concise summary in one paragraph of all the changes that have happened since the last update. Apply the filtering rules from the `changelog_config.yaml` to the list of commits for each module from the LLM summary. 
 
 
