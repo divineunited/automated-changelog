@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automated-changelog"
-version = "0.2.0"
-description = "LLM-powered automated changelog generation for Git repositories and monorepos"
+version = "0.3.0"
+description = "LLM-powered automated changelog generation for Git repositories"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MPL-2.0"
@@ -21,7 +21,6 @@ keywords = [
     "git",
     "automation",
     "llm",
-    "monorepo",
     "release-notes",
     "documentation",
     "developer-tools",

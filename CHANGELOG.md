@@ -1,5 +1,34 @@
 <!-- CHANGELOG_STATE: b17c762a4ff6a672f16f0ca775eb4a7dcef8a743 -->
 
+## [0.3.0] - 2025-11-06
+
+### Breaking Changes
+
+- **Removed monorepo support**: The tool now treats each repository as a single unit, simplifying the codebase and eliminating the issue where commits spanning multiple areas were duplicated across module sections
+- **Configuration schema changes**:
+  - Removed `modules` field from `.changelog_config.yaml`
+  - Changed LLM prompt fields from `module_summary_prompt` and `overall_summary_prompt` to a single `summary_prompt`
+- **Migration required**: Existing configurations must remove the `modules` field and update LLM prompt field names
+
+### Changed
+
+- Simplified CLI `init` command - no longer asks about monorepo structure
+- Changed from two-stage summarization (per-module + overall) to single repository summary
+- Updated changelog output format from "Changes by Module" to "Changes (N commits)"
+- Simplified configuration template with fewer required fields
+
+### Removed
+
+- `get_monorepo_modules()` function and module detection logic
+- Module iteration throughout the codebase
+- Per-module commit filtering and summarization
+
+### Documentation
+
+- Updated README to focus on single repository workflow
+- Updated CLAUDE.md with simplified architecture
+- Removed all monorepo references from documentation
+
 ## [0.2.0] - 2025-11-06
 
 ### Added
