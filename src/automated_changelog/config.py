@@ -7,66 +7,22 @@ from typing import Any
 import yaml
 
 
-def get_monorepo_modules(root_dir: Path) -> list[str]:
-    """Detect top-level directories as potential modules in a monorepo.
+def generate_config_template(repo_name: str) -> str:
+    """Generate a configuration template for the repository.
 
     Args:
-        root_dir: Root directory of the repository
-
-    Returns:
-        List of directory names that could be modules
-    """
-    modules = []
-
-    # Common directories to exclude
-    exclude_dirs = {"venv", "node_modules", "__pycache__", "dist", "build", "htmlcov"}
-
-    for item in root_dir.iterdir():
-        if (
-            item.is_dir()
-            and item.name not in exclude_dirs
-            and not item.name.startswith(".")
-        ):
-            modules.append(item.name)
-
-    return sorted(modules)
-
-
-def generate_config_template(is_monorepo: bool, repo_name: str) -> str:
-    """Generate a configuration template based on repo type.
-
-    Args:
-        is_monorepo: Whether this is a monorepo
-        repo_name: Name of the repository or single module
+        repo_name: Name of the repository
 
     Returns:
         YAML configuration template as string
     """
 
-    if is_monorepo:
-        # Detect modules from current directory
-        cwd = Path.cwd()
-        detected_modules = get_monorepo_modules(cwd)
-
-        if detected_modules:
-            modules_yaml = "\n".join(f"  - {module}" for module in detected_modules)
-        else:
-            modules_yaml = "  - service-a\n  - service-b\n  - shared-library"
-    else:
-        modules_yaml = f"  - {repo_name}"
-
-    template = f"""# Automated Changelog Configuration
+    template = """# Automated Changelog Configuration
 # This file defines how the changelog generator analyzes your repository.
 
 # Output file where the changelog will be written.
 # The tool will prepend new entries to this file.
 output_file: "CHANGELOG.md"
-
-# List of modules/packages/services in your repository.
-# For monorepos: Each top-level directory is typically a module.
-# For single repos: Just list the repo name as a single module.
-modules:
-{modules_yaml}
 
 # Filtering rules for commits.
 # These help focus the changelog on significant changes by excluding noise.
@@ -100,23 +56,17 @@ filter:
     - "*.txt"
 
 # LLM Configuration (optional customization)
-# The tool uses these prompts to generate summaries.
+# The tool uses this prompt to generate summaries.
 llm:
   # Model to use for summarization (default: claude-sonnet-4-5)
   model: "claude-sonnet-4-5"
 
-  # System prompt for module-level summaries
-  module_summary_prompt: |
+  # System prompt for changelog summaries
+  summary_prompt: |
     You are a technical writer creating changelog entries.
-    Summarize the significant changes for this module in 2-4 concise bullet points.
+    Summarize the significant changes in 2-4 concise bullet points.
     Focus on features, fixes, and breaking changes. Ignore minor updates.
     Use clear, user-facing language.
-
-  # System prompt for overall repository summary
-  overall_summary_prompt: |
-    You are a technical writer creating changelog entries.
-    Provide a high-level summary (3-4 sentences) of the key activities across all modules.
-    Highlight the most important changes or themes for this release period.
 """
 
     return template
@@ -184,7 +134,7 @@ def load_config(config_path: str | Path) -> dict[str, Any]:
         raise ConfigError("Configuration file is empty")
 
     # Validate required fields
-    required_fields = ["output_file", "modules", "filter"]
+    required_fields = ["output_file", "filter"]
     missing_fields = [field for field in required_fields if field not in config]
 
     if missing_fields:

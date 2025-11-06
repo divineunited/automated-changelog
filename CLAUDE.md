@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`automated-changelog` is a Python CLI tool that automatically generates human-readable changelogs by analyzing Git history and using LLMs to create concise summaries. It works with both single repositories and monorepos.
+`automated-changelog` is a Python CLI tool that automatically generates human-readable changelogs by analyzing Git history and using LLMs to create concise summaries.
 
 ## Development Commands
 
@@ -80,9 +80,9 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
    - `generate`: Generates changelog entries from Git history
 
 2. **config.py** - Configuration management:
-   - `generate_config_template()`: Auto-detects monorepo modules or uses repo name
+   - `generate_config_template()`: Generates default configuration template
    - `load_config()`: Validates and loads YAML configuration
-   - `get_monorepo_modules()`: Discovers modules by scanning top-level directories
+   - `get_repo_name()`: Gets repository name from git remote or directory
 
 3. **git_state.py** - Git operations and state tracking:
    - `fetch_commits()`: Executes `git log` and parses commit data (hash, author, date, subject)
@@ -92,8 +92,7 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 
 4. **summarization.py** - LLM-powered summarization:
    - `filter_commits()`: Filters commits by prefixes, keywords, and paths
-   - `generate_module_summary()`: Creates per-module summaries via LLM
-   - `generate_overall_summary()`: Creates high-level summary for monorepos (only if multiple modules)
+   - `generate_summary()`: Creates changelog summary via LLM
 
 5. **llm.py** - LLM client interface:
    - Uses LiteLLM proxy for API calls
@@ -105,14 +104,12 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 - **Incremental Processing**: State tracking via HTML comments in CHANGELOG.md eliminates need for separate state files
 - **Date Range Mode**: Supports historical changelog generation with `--from-date` and `--to-date` flags. In this mode, state markers are NOT written to preserve incremental workflow
 - **Filter-First Strategy**: Commits are filtered before LLM processing to reduce costs
-- **Two-Stage Summarization**: Module summaries first, then optional overall summary for monorepos
 - **LLM Input**: Only commit messages (hash, subject, author, date) are sent to LLM, not code diffs
 
 ### Important Implementation Details
 
 - The tool only reads **commit messages**, not code changes or file diffs
 - Filtering happens before LLM calls to minimize API costs
-- For single-module repos, no overall summary is generated
 - State marker format: `<!-- CHANGELOG_STATE: <full-40-char-hash> -->`
 - Git log format: `%H|||%h|||%an|||%ai|||%s` (parsed with `|||` delimiter)
 - Date format in output: `YYYY-MM-DD HH:MM` (truncated from ISO 8601)
@@ -125,7 +122,6 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 
 The tool expects `.changelog_config.yaml` in the repository root with:
 - `output_file`: Path to CHANGELOG.md
-- `modules`: List of module names
 - `filter`: Commit filtering rules (prefixes, keywords, paths)
 - `llm`: Optional LLM model and prompt customization
 

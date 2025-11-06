@@ -44,17 +44,15 @@ def filter_commits(
     return filtered
 
 
-def generate_module_summary(
-    module_name: str,
+def generate_summary(
     commits: list[dict[str, str]],
     prompt_template: str,
     model: str = "claude-sonnet-4-5",
 ) -> str:
     """
-    Generate LLM summary for a module's commits.
+    Generate LLM summary for commits.
 
     Args:
-        module_name: Name of the module
         commits: List of filtered commit dictionaries
         prompt_template: System prompt template from config
         model: LLM model to use
@@ -78,51 +76,10 @@ def generate_module_summary(
     # Build the prompt
     prompt = f"""{prompt_template}
 
-Module: {module_name}
-
 Commits:
 {commits_text}
 
 Provide a concise summary in 2-4 bullet points."""
-
-    # Call LLM
-    summary = call_llm(prompt=prompt, model=model)
-    return summary.strip()
-
-
-def generate_overall_summary(
-    module_summaries: dict[str, str],
-    prompt_template: str,
-    model: str = "claude-sonnet-4-5",
-) -> str:
-    """
-    Generate overall summary for monorepo from module summaries.
-
-    Args:
-        module_summaries: Dict mapping module names to their summaries
-        prompt_template: System prompt template from config
-        model: LLM model to use
-
-    Returns:
-        Generated overall summary text
-    """
-    if not module_summaries:
-        return "No significant changes across modules."
-
-    # Build module summaries text
-    summary_lines = []
-    for module_name, summary in module_summaries.items():
-        summary_lines.append(f"**{module_name}**:\n{summary}")
-
-    summaries_text = "\n\n".join(summary_lines)
-
-    # Build the prompt
-    prompt = f"""{prompt_template}
-
-Module Summaries:
-{summaries_text}
-
-Provide a high-level summary (3-4 sentences) of the key activities across all modules."""
 
     # Call LLM
     summary = call_llm(prompt=prompt, model=model)

@@ -1,10 +1,10 @@
 # automated-changelog
 
-LLM-powered automated changelog generation for Git repositories and monorepos.
+LLM-powered automated changelog generation for Git repositories.
 
 ## Overview
 
-`automated-changelog` is a Python CLI tool that automatically generates human-readable changelogs by analyzing your Git history and using LLMs to create concise, meaningful summaries. It works with both single repositories and monorepos, filtering out noise to focus on significant changes.
+`automated-changelog` is a Python CLI tool that automatically generates human-readable changelogs by analyzing your Git history and using LLMs to create concise, meaningful summaries. It filters out noise to focus on significant changes.
 
 ## Installation
 
@@ -24,7 +24,7 @@ pip install automated-changelog
    ```bash
    automated-changelog init
    ```
-   This creates `.changelog_config.yaml` with auto-detected modules.
+   This creates `.changelog_config.yaml` with default settings.
 
 3. **Generate your changelog**:
    ```bash
@@ -42,10 +42,7 @@ pip install automated-changelog
 
 ### `automated-changelog init [--config PATH]`
 
-Creates a `.changelog_config.yaml` configuration file in your repository.
-
-* Auto-detects monorepo modules or uses repository name for single repos
-* Prompts for repository type (monorepo or single repo)
+Creates a `.changelog_config.yaml` configuration file in your repository with sensible defaults for commit filtering and LLM summarization.
 
 **Example:**
 ```bash
@@ -99,20 +96,17 @@ SSL_VERIFY=false automated-changelog generate --dry-run
 
 ## Core Functionality
 
-1.  **Monorepo Aware:** Identifies distinct modules (packages, services, libraries) within your monorepo based on paths defined in a configuration file.
-2.  **Commit Analysis:** Processes `git log` history, specifically focusing on squashed merge commits since the last time the tool was run (tracked via metadata within the `CHANGELOG.md`).
-3.  **Intelligent Filtering:** Filters out minor commits (e.g., chores, docs, tests, typos) based on customizable rules (commit message prefixes, keywords, file paths) defined in the configuration.
-4.  **LLM-Powered Summarization:**
-    * Generates concise, bulleted summaries of the *significant* changes made within **each module**.
-    * Creates a high-level **overall summary** highlighting key activities across the entire monorepo for the period.
-5.  **Markdown Output:** Formats the summaries (overall and per-module with commit counts) into a Markdown section.
-6.  **Incremental Updates:** Reads the existing changelog file (e.g., `CHANGELOG.md`) and automatically **prepends** the newly generated section, maintaining a running history.
-7.  **Historical Generation:** Generate changelogs for specific date ranges using `--from-date` and `--to-date` flags. Perfect for backfilling weekly or monthly changelog entries for repositories with extensive history.
+1.  **Commit Analysis:** Processes `git log` history, focusing on commits since the last time the tool was run (tracked via metadata within the `CHANGELOG.md`).
+2.  **Intelligent Filtering:** Filters out minor commits (e.g., chores, docs, tests, typos) based on customizable rules (commit message prefixes, keywords, file paths) defined in the configuration.
+3.  **LLM-Powered Summarization:** Generates concise, bulleted summaries of significant changes by analyzing commit messages.
+4.  **Markdown Output:** Formats the summaries and commit lists into a well-structured Markdown section.
+5.  **Incremental Updates:** Reads the existing changelog file (e.g., `CHANGELOG.md`) and automatically **prepends** the newly generated section, maintaining a running history.
+6.  **Historical Generation:** Generate changelogs for specific date ranges using `--from-date` and `--to-date` flags. Perfect for backfilling weekly or monthly changelog entries for repositories with extensive history.
 
 **How it Works:**
 
-* **Configuration:** Uses a `.changelog_config.yaml` file (checked into your repo) to define modules, filtering rules, the output changelog file path, and optionally customize LLM prompts. An `init` command helps generate this file.
-* **Execution:** Run the `generate` command from within your monorepo. It uses the Git CLI and interacts with a configured LLM to produce the summaries.
+* **Configuration:** Uses a `.changelog_config.yaml` file (checked into your repo) to define filtering rules, the output changelog file path, and optionally customize LLM prompts. An `init` command helps generate this file.
+* **Execution:** Run the `generate` command from within your repository. It uses the Git CLI and interacts with a configured LLM to produce the summaries.
 * **State Management:** Stores the hash of the last processed commit **within a comment or metadata block inside the `CHANGELOG.md` file**. This ensures the tool only includes new changes in subsequent runs without requiring a separate state file.
 
 ## What Gets Summarized
@@ -143,40 +137,20 @@ This design keeps API costs low and focuses on what developers already wrote in 
 
 ## How LLM Summarization Works
 
-The summarization happens in two stages:
-
-### Stage 1: Module-Level Summaries
-
-For each module in your repository:
-
 1. **Filter commits** based on rules in `.changelog_config.yaml`:
    - Ignore commits with certain prefixes (`chore:`, `docs:`, `test:`, etc.)
    - Ignore commits with certain keywords (`typo`, `cleanup`, etc.)
 
 2. **Send filtered commits to LLM** with:
-   - Module name
    - List of commit messages (hash, subject, author, date)
    - Custom prompt from config (e.g., "Summarize in 2-4 bullet points")
 
 3. **LLM generates** a concise summary focusing on features, fixes, and breaking changes
 
-### Stage 2: Overall Summary (Monorepos Only)
-
-If you have multiple modules:
-
-1. **Collect all module summaries** from Stage 1
-
-2. **Send module summaries to LLM** with:
-   - All module names and their summaries
-   - Custom overall summary prompt from config
-
-3. **LLM generates** a high-level summary highlighting key themes across all modules
-
 ### Output Format
 
 The final changelog entry includes:
-- **Overall summary** (for monorepos) - High-level themes
-- **Module summaries** - LLM-generated bullet points per module
+- **Summary** - LLM-generated bullet points highlighting significant changes
 - **All commits** (collapsible) - Full commit list for reference
 
 **Example:**
@@ -184,16 +158,12 @@ The final changelog entry includes:
 ## [2025-11-05]
 
 ### Summary
-This release focuses on authentication improvements and bug fixes across
-the platform, with significant updates to the user service and API layer.
-
-### Changes by Module
-
-**user-service** (5 commits)
 
 - Added OAuth2 authentication support with Google and GitHub providers
 - Implemented password reset functionality via email
 - Fixed session timeout bug causing unexpected logouts
+
+### Changes (5 commits)
 
 <details>
 <summary>All commits</summary>
@@ -207,4 +177,4 @@ the platform, with significant updates to the user service and API layer.
 
 **Goal:**
 
-To save developer time and improve project visibility by automating the creation of consistent, informative, and easy-to-read changelogs specifically tailored for the complexities of a monorepo structure.
+To save developer time and improve project visibility by automating the creation of consistent, informative, and easy-to-read changelogs.

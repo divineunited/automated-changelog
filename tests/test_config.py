@@ -9,58 +9,9 @@ import yaml
 from automated_changelog.config import (
     ConfigError,
     generate_config_template,
-    get_monorepo_modules,
     get_repo_name,
     load_config,
 )
-
-
-class TestGetMonorepoModules:
-    """Tests for get_monorepo_modules function."""
-
-    def test_get_monorepo_modules_excludes_common_dirs(self, tmp_path):
-        """Test that common directories are excluded from modules."""
-        # Create some directories
-        (tmp_path / "service-a").mkdir()
-        (tmp_path / "service-b").mkdir()
-        (tmp_path / ".git").mkdir()
-        (tmp_path / ".venv").mkdir()
-        (tmp_path / "node_modules").mkdir()
-        (tmp_path / "__pycache__").mkdir()
-
-        modules = get_monorepo_modules(tmp_path)
-
-        assert "service-a" in modules
-        assert "service-b" in modules
-        assert ".git" not in modules
-        assert ".venv" not in modules
-        assert "node_modules" not in modules
-        assert "__pycache__" not in modules
-
-    def test_get_monorepo_modules_sorted(self, tmp_path):
-        """Test that modules are returned in sorted order."""
-        (tmp_path / "zebra").mkdir()
-        (tmp_path / "alpha").mkdir()
-        (tmp_path / "beta").mkdir()
-
-        modules = get_monorepo_modules(tmp_path)
-
-        assert modules == ["alpha", "beta", "zebra"]
-
-    def test_get_monorepo_modules_ignores_files(self, tmp_path):
-        """Test that files are ignored, only directories are returned."""
-        (tmp_path / "service-a").mkdir()
-        (tmp_path / "README.md").touch()
-        (tmp_path / "setup.py").touch()
-
-        modules = get_monorepo_modules(tmp_path)
-
-        assert modules == ["service-a"]
-
-    def test_get_monorepo_modules_empty_directory(self, tmp_path):
-        """Test that empty directory returns empty list."""
-        modules = get_monorepo_modules(tmp_path)
-        assert modules == []
 
 
 class TestGenerateConfigTemplate:
@@ -68,11 +19,9 @@ class TestGenerateConfigTemplate:
 
     def test_generate_config_template_single_repo(self):
         """Test config template generation for single repo."""
-        template = generate_config_template(is_monorepo=False, repo_name="my-app")
+        template = generate_config_template(repo_name="my-app")
 
         assert 'output_file: "CHANGELOG.md"' in template
-        assert "modules:" in template
-        assert "  - my-app" in template
         assert "filter:" in template
         assert "ignore_prefixes:" in template
         assert "chore:" in template
@@ -84,48 +33,19 @@ class TestGenerateConfigTemplate:
         assert "llm:" in template
         assert "model:" in template
 
-    @patch("automated_changelog.config.get_monorepo_modules")
-    def test_generate_config_template_monorepo_with_detected_modules(
-        self, mock_get_modules
-    ):
-        """Test config template generation for monorepo with detected modules."""
-        mock_get_modules.return_value = ["api", "frontend", "shared"]
-
-        template = generate_config_template(is_monorepo=True, repo_name="my-repo")
-
-        assert "  - api" in template
-        assert "  - frontend" in template
-        assert "  - shared" in template
-
-    @patch("automated_changelog.config.get_monorepo_modules")
-    def test_generate_config_template_monorepo_no_detected_modules(
-        self, mock_get_modules
-    ):
-        """Test config template generation for monorepo with no detected modules."""
-        mock_get_modules.return_value = []
-
-        template = generate_config_template(is_monorepo=True, repo_name="my-repo")
-
-        # Should fall back to example modules
-        assert "service-a" in template
-        assert "service-b" in template
-        assert "shared-library" in template
-
     def test_generate_config_template_contains_all_required_fields(self):
         """Test that template contains all required configuration fields."""
-        template = generate_config_template(is_monorepo=False, repo_name="test")
+        template = generate_config_template(repo_name="test")
 
         required_fields = [
             "output_file:",
-            "modules:",
             "filter:",
             "ignore_prefixes:",
             "ignore_keywords:",
             "ignore_paths_only:",
             "llm:",
             "model:",
-            "module_summary_prompt:",
-            "overall_summary_prompt:",
+            "summary_prompt:",
         ]
 
         for field in required_fields:
@@ -174,7 +94,6 @@ class TestLoadConfig:
         config_file = tmp_path / "test_config.yaml"
         config_content = {
             "output_file": "CHANGELOG.md",
-            "modules": ["api", "frontend"],
             "filter": {
                 "ignore_prefixes": ["chore:", "docs:"],
                 "ignore_keywords": ["typo"],
@@ -186,7 +105,6 @@ class TestLoadConfig:
         config = load_config(config_file)
 
         assert config["output_file"] == "CHANGELOG.md"
-        assert config["modules"] == ["api", "frontend"]
         assert "filter" in config
         assert config["filter"]["ignore_prefixes"] == ["chore:", "docs:"]
 
@@ -223,14 +141,13 @@ class TestLoadConfig:
     def test_load_config_missing_required_fields(self, tmp_path):
         """Test error when config is missing required fields."""
         config_file = tmp_path / "incomplete.yaml"
-        config_content = {"output_file": "CHANGELOG.md"}  # Missing modules and filter
+        config_content = {"output_file": "CHANGELOG.md"}  # Missing filter
         config_file.write_text(yaml.dump(config_content))
 
         with pytest.raises(ConfigError) as exc_info:
             load_config(config_file)
 
         assert "Missing required configuration fields" in str(exc_info.value)
-        assert "modules" in str(exc_info.value)
         assert "filter" in str(exc_info.value)
 
     def test_load_config_with_llm_section(self, tmp_path):
@@ -238,9 +155,8 @@ class TestLoadConfig:
         config_file = tmp_path / "config_with_llm.yaml"
         config_content = {
             "output_file": "CHANGELOG.md",
-            "modules": ["service"],
             "filter": {"ignore_prefixes": ["chore:"]},
-            "llm": {"model": "gpt-4o-mini", "module_summary_prompt": "Test prompt"},
+            "llm": {"model": "gpt-4o-mini", "summary_prompt": "Test prompt"},
         }
         config_file.write_text(yaml.dump(config_content))
 
