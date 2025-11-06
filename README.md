@@ -62,6 +62,8 @@ Generates changelog entries from Git history since the last run.
 * `--dry-run` - Preview the changelog without writing to file
 * `--skip-llm` - Skip LLM summarization and only list commits
 * `--config PATH` - Use custom config file (default: `.changelog_config.yaml`)
+* `--from-date DATE` - Start date for commits (YYYY-MM-DD) for historical generation
+* `--to-date DATE` - End date for commits (YYYY-MM-DD) for historical generation
 
 **Examples:**
 ```bash
@@ -73,6 +75,15 @@ automated-changelog generate
 
 # Just list commits without LLM
 automated-changelog generate --skip-llm
+
+# Generate historical changelog for specific date range
+automated-changelog generate --from-date 2024-01-01 --to-date 2024-01-07
+
+# Generate changelog for all commits since a date
+automated-changelog generate --from-date 2024-01-01
+
+# Generate changelog for all commits until a date
+automated-changelog generate --to-date 2024-12-31
 ```
 
 ### Environment Variables
@@ -96,6 +107,7 @@ SSL_VERIFY=false automated-changelog generate --dry-run
     * Creates a high-level **overall summary** highlighting key activities across the entire monorepo for the period.
 5.  **Markdown Output:** Formats the summaries (overall and per-module with commit counts) into a Markdown section.
 6.  **Incremental Updates:** Reads the existing changelog file (e.g., `CHANGELOG.md`) and automatically **prepends** the newly generated section, maintaining a running history.
+7.  **Historical Generation:** Generate changelogs for specific date ranges using `--from-date` and `--to-date` flags. Perfect for backfilling weekly or monthly changelog entries for repositories with extensive history.
 
 **How it Works:**
 

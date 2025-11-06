@@ -90,7 +90,15 @@ def init(config):
     is_flag=True,
     help="Skip LLM summarization and only list commits",
 )
-def generate(config, dry_run, skip_llm):
+@click.option(
+    "--from-date",
+    help="Start date for commits (YYYY-MM-DD) for historical generation.",
+)
+@click.option(
+    "--to-date",
+    help="End date for commits (YYYY-MM-DD) for historical generation.",
+)
+def generate(config, dry_run, skip_llm, from_date, to_date):
     """Generate changelog from git history."""
     # Load configuration
     try:
@@ -104,18 +112,34 @@ def generate(config, dry_run, skip_llm):
         if dry_run:
             click.echo("\n(Dry run mode - no files will be written)")
 
-        # Read last commit hash from changelog
+        # Determine mode: date range or incremental
+        using_date_range = from_date or to_date
         output_file = cfg["output_file"]
-        last_hash = read_last_commit_hash(output_file)
+        last_hash = None
 
-        if last_hash:
-            click.echo(f"\n✓ Found last processed commit: {last_hash[:8]}")
+        if using_date_range:
+            # Date range mode - for historical generation
+            click.echo("\n✓ Using date range mode")
+            if from_date:
+                click.echo(f"  From: {from_date}")
+            if to_date:
+                click.echo(f"  To: {to_date}")
         else:
-            click.echo("\n! No previous state found, fetching all commits")
+            # Incremental mode - read last commit hash from changelog
+            last_hash = read_last_commit_hash(output_file)
+
+            if last_hash:
+                click.echo(f"\n✓ Found last processed commit: {last_hash[:8]}")
+            else:
+                click.echo("\n! No previous state found, fetching all commits")
 
         # Fetch commits
         try:
-            commits = fetch_commits(last_commit_hash=last_hash)
+            commits = fetch_commits(
+                last_commit_hash=last_hash,
+                since_date=from_date,
+                until_date=to_date,
+            )
             click.echo(f"✓ Found {len(commits)} commits to process")
 
             if not commits:
@@ -201,17 +225,31 @@ def generate(config, dry_run, skip_llm):
                     overall_summary = None
 
             # Build changelog entry
-            timestamp = datetime.now().strftime("%Y-%m-%d")
+            # Use date range for header if specified, otherwise use current date
+            if using_date_range:
+                if from_date and to_date:
+                    timestamp = f"{from_date} to {to_date}"
+                elif from_date:
+                    timestamp = f"Since {from_date}"
+                elif to_date:
+                    timestamp = f"Until {to_date}"
+            else:
+                timestamp = datetime.now().strftime("%Y-%m-%d")
+
             summary = f"## [{timestamp}]\n"
-            summary += f"<!-- LATEST_COMMIT: {latest_hash} -->\n\n"
+            # Only add state marker in incremental mode (not for historical date ranges)
+            if not using_date_range:
+                summary += f"<!-- LATEST_COMMIT: {latest_hash} -->\n\n"
+            else:
+                summary += "\n"
 
             # Add overall summary if monorepo and LLM was used
             if use_llm and overall_summary:
-                summary += f"### Summary\n\n"
+                summary += "### Summary\n\n"
                 summary += f"{overall_summary}\n\n"
 
             # Add module summaries
-            summary += f"### Changes by Module\n\n"
+            summary += "### Changes by Module\n\n"
             for module in cfg["modules"]:
                 summary += f"**{module}** ({len(commits)} commits)\n\n"
 
@@ -234,13 +272,17 @@ def generate(config, dry_run, skip_llm):
 
             # Write to changelog
             if not dry_run:
-                write_changelog_entry(output_file, latest_hash, summary)
+                # Pass None for latest_hash in date range mode to skip state update
+                hash_to_write = None if using_date_range else latest_hash
+                write_changelog_entry(output_file, hash_to_write, summary)
                 click.echo(f"\n✓ Changelog updated: {output_file}")
-                click.echo(f"  Latest commit: {latest_hash[:8]}")
+                if not using_date_range:
+                    click.echo(f"  Latest commit: {latest_hash[:8]}")
             else:
                 click.echo("\n--- Generated Summary (Dry Run) ---")
                 click.echo(summary)
-                click.echo(f"\nWould update state to: {latest_hash[:8]}")
+                if not using_date_range:
+                    click.echo(f"\nWould update state to: {latest_hash[:8]}")
 
         except subprocess.CalledProcessError as e:
             click.echo(f"✗ Git command failed: {e}", err=True)

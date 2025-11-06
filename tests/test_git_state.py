@@ -1,7 +1,6 @@
 """Tests for git_state module."""
 
 import subprocess
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -84,7 +83,9 @@ class TestWriteChangelogEntry:
         """Test prepending new entry to existing changelog."""
         changelog = tmp_path / "CHANGELOG.md"
         old_hash = "old1234567890123456789012345678901234567"
-        old_content = f"<!-- CHANGELOG_STATE: {old_hash} -->\n\n## [2025-01-14]\n\n- Old entry\n"
+        old_content = (
+            f"<!-- CHANGELOG_STATE: {old_hash} -->\n\n## [2025-01-14]\n\n- Old entry\n"
+        )
         changelog.write_text(old_content)
 
         new_hash = "new1234567890123456789012345678901234567"

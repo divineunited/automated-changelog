@@ -1,6 +1,25 @@
 <!-- CHANGELOG_STATE: b17c762a4ff6a672f16f0ca775eb4a7dcef8a743 -->
 
-## [2025-11-05]
+## [0.2.0] - 2025-11-06
+
+### Added
+
+- **Date range support for historical changelog generation**: New `--from-date` and `--to-date` CLI options allow generating changelogs for specific time periods
+- Support for backfilling weekly or monthly changelog entries for repositories with extensive history
+- Two operating modes: incremental (default with state tracking) and date range (historical generation without state updates)
+
+### Changed
+
+- Changelog headers now show date ranges when using `--from-date`/`--to-date` (e.g., `[2024-01-01 to 2024-01-07]`)
+- State markers are only written in incremental mode, preserving the incremental workflow when generating historical entries
+
+### Documentation
+
+- Updated README with date range examples and usage
+- Updated CLAUDE.md with developer commands and architecture details
+- Added comprehensive CLI help text for new date parameters
+
+## [0.1.0] - 2025-11-05
 <!-- LATEST_COMMIT: b17c762a4ff6a672f16f0ca775eb4a7dcef8a743 -->
 
 ### Changes by Module

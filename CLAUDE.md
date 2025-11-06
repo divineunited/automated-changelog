@@ -55,6 +55,11 @@ make run-generate
 
 # Skip LLM summarization (just list commits)
 uv run automated-changelog generate --skip-llm
+
+# Generate historical changelogs for specific date ranges
+uv run automated-changelog generate --from-date 2025-10-26 --to-date 2025-10-27 --dry-run
+uv run automated-changelog generate --from-date 2025-11-01  # All commits since this date
+uv run automated-changelog generate --to-date 2025-10-31    # All commits until this date
 ```
 
 ### Building for PyPI
@@ -98,6 +103,7 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 ### Key Design Patterns
 
 - **Incremental Processing**: State tracking via HTML comments in CHANGELOG.md eliminates need for separate state files
+- **Date Range Mode**: Supports historical changelog generation with `--from-date` and `--to-date` flags. In this mode, state markers are NOT written to preserve incremental workflow
 - **Filter-First Strategy**: Commits are filtered before LLM processing to reduce costs
 - **Two-Stage Summarization**: Module summaries first, then optional overall summary for monorepos
 - **LLM Input**: Only commit messages (hash, subject, author, date) are sent to LLM, not code diffs
@@ -110,6 +116,10 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 - State marker format: `<!-- CHANGELOG_STATE: <full-40-char-hash> -->`
 - Git log format: `%H|||%h|||%an|||%ai|||%s` (parsed with `|||` delimiter)
 - Date format in output: `YYYY-MM-DD HH:MM` (truncated from ISO 8601)
+
+**Two Operating Modes:**
+1. **Incremental Mode** (default): Uses state marker to track last processed commit. Fetches commits from last hash to HEAD. Updates state marker after generation.
+2. **Date Range Mode** (`--from-date`/`--to-date`): Uses git log `--since`/`--until` for historical generation. Does NOT update state marker. Useful for backfilling weekly/monthly historical changelogs.
 
 ### Configuration File Location
 
