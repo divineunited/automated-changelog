@@ -47,3 +47,7 @@ run-generate-dry:  ## Run generate in dry-run mode
 
 run-generate-dry-no-ssl:  ## Run generate in dry-run mode with SSL verification disabled
 	SSL_VERIFY=false uv run automated-changelog generate --dry-run
+
+build:  ## Build source and wheel distributions for PyPI
+	rm -rf dist/ build/ src/*.egg-info
+	PIP_INDEX_URL=https://pypi.org/simple PIP_EXTRA_INDEX_URL="" uv run python -m build

@@ -1,0 +1,18 @@
+# Include important documentation files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include .env.example
+
+# Include configuration examples
+include .changelog_config.yaml
+
+# Include all Python files
+recursive-include src *.py
+recursive-include tests *.py
+
+# Exclude unnecessary files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.swp

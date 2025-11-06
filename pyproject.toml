@@ -5,28 +5,54 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "automated-changelog"
 version = "0.1.0"
-description = "LLM Summarized and Automated Changelog for Any Repo"
+description = "LLM-powered automated changelog generation for Git repositories and monorepos"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MPL-2.0"
+license-files = ["LICENSE"]
 authors = [
-    {name = "Danny Vu"}
+    {name = "Danny Vu", email = "danieldukevu@outlook.com"}
+]
+maintainers = [
+    {name = "Danny Vu", email = "danieldukevu@outlook.com"}
+]
+keywords = [
+    "changelog",
+    "git",
+    "automation",
+    "llm",
+    "monorepo",
+    "release-notes",
+    "documentation",
+    "developer-tools",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Utilities",
+    "Typing :: Typed",
 ]
+
 dependencies = [
     "click>=8.1.0",
     "PyYAML>=6.0",
     "litellm>=1.0.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/divineunited/automated-changelog"
+Repository = "https://github.com/divineunited/automated-changelog"
+Issues = "https://github.com/divineunited/automated-changelog/issues"
+Changelog = "https://github.com/divineunited/automated-changelog/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +61,8 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
 ]
 
 [project.scripts]
