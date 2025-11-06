@@ -51,3 +51,5 @@ run-generate-dry-no-ssl:  ## Run generate in dry-run mode with SSL verification 
 build:  ## Build source and wheel distributions for PyPI
 	rm -rf dist/ build/ src/*.egg-info
 	PIP_INDEX_URL=https://pypi.org/simple PIP_EXTRA_INDEX_URL="" uv run python -m build
+
+## to publish: uv run twine upload -u __token__ -p your-pypi-api-token-here dist/*
