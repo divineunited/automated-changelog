@@ -97,7 +97,6 @@ uv run twine upload -u __token__ -p <your-pypi-api-token> dist/*
 5. **llm.py** - LLM client interface:
    - Uses LiteLLM proxy for API calls
    - Requires `LITELLM_PROXY_API_BASE` and `LITELLM_PROXY_API_KEY` env vars
-   - Supports SSL verification bypass via `SSL_VERIFY=false`
 
 ### Key Design Patterns
 
@@ -130,6 +129,3 @@ The tool expects `.changelog_config.yaml` in the repository root with:
 Required for LLM features:
 - `LITELLM_PROXY_API_BASE`: Your LiteLLM proxy URL
 - `LITELLM_PROXY_API_KEY` (or `LITELLM_API_KEY`): API key
-
-Optional:
-- `SSL_VERIFY=false`: Disable SSL verification for internal proxies

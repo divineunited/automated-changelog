@@ -11,6 +11,7 @@ load_dotenv(override=True)
 
 # Disable SSL verification for internal proxies if needed
 # This is set via environment variable: SSL_VERIFY=false
+# TODO: Don't allow for this and use internal PEM cert
 if os.getenv("SSL_VERIFY", "true").lower() == "false":
     ssl._create_default_https_context = ssl._create_unverified_context
 

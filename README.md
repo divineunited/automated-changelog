@@ -87,12 +87,6 @@ automated-changelog generate --to-date 2024-12-31
 
 * `LITELLM_PROXY_API_BASE` - Your LiteLLM proxy URL
 * `LITELLM_PROXY_API_KEY` - Your LiteLLM API key
-* `SSL_VERIFY` - Set to `false` to disable SSL verification (for internal proxies)
-
-**Example:**
-```bash
-SSL_VERIFY=false automated-changelog generate --dry-run
-```
 
 ## Core Functionality
 
